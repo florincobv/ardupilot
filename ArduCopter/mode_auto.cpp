@@ -349,7 +349,7 @@ void ModeAuto::takeoff_start(const Location& dest_loc)
     }
 
     // sanity check target
-    int32_t alt_target_min_cm = current_alt_cm + (copter.ap.land_complete ? 100 : 0);
+    int32_t alt_target_min_cm = current_alt_cm + (copter.ap.land_complete ? 40 : 0);
     alt_target_cm = MAX(alt_target_cm, alt_target_min_cm);
 
     // initialise yaw
