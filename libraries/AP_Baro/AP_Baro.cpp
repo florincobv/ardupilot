@@ -49,6 +49,8 @@
 #include "AP_Baro_ICP101XX.h"
 #include "AP_Baro_ICP201XX.h"
 
+#include "AP_Baro_FlorincoUWB.h"
+
 #include <AP_Airspeed/AP_Airspeed.h>
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_Arming/AP_Arming.h>
