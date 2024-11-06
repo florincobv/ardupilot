@@ -612,6 +612,12 @@ void AP_SerialManager::init()
                     break;
 #endif
 
+                case SerialProtocol_FLNC_UWB:
+                    uart->begin(state[i].baudrate(),
+                                AP_UWB_BUFSIZE_RX,
+                                AP_UWB_BUFSIZE_TX);
+                    break;
+
                 default:
                     uart->begin(state[i].baudrate());
             }

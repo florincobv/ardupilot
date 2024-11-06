@@ -177,6 +177,10 @@
 #if HAL_ADSB_ENABLED
 #include "avoidance_adsb.h"
 #endif
+
+#ifdef AP_UWB_ENABLED
+#include <AP_UWB/AP_UWB.h>
+#endif
 // Local modules
 #include "Parameters.h"
 #if USER_PARAMS_ENABLED
