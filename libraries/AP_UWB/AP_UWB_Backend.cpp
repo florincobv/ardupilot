@@ -24,7 +24,7 @@ extern const AP_HAL::HAL& hal;
   base class constructor. 
   This incorporates initialisation as well.
 */
-AP_UWB_Backend::AP_UWB_Backend(AP_UWB::Status &_state, AP_UWB_Params &_params) :
+AP_UWB_Backend::AP_UWB_Backend(AP_UWB::UWB_State &_state, AP_UWB_Params &_params) :
         state(_state),
 		params(_params)
 {
@@ -32,39 +32,33 @@ AP_UWB_Backend::AP_UWB_Backend(AP_UWB::Status &_state, AP_UWB_Params &_params) :
 }
 
 AP_UWB::Status AP_UWB_Backend::status() const {
-    if (type() == RangeFinder::Type::NONE) {
+    if (type() == AP_UWB::Type::NONE) {
         // turned off at runtime?
-        return RangeFinder::Status::NotConnected;
+        return AP_UWB::Status::NotConnected;
     }
     return state.status;
 }
 
 // true if sensor is returning data
 bool AP_UWB_Backend::has_data() const {
-    return ((state.status != RangeFinder::Status::NotConnected) &&
-            (state.status != RangeFinder::Status::NoData));
+    return ((state.status != AP_UWB::Status::NotConnected) &&
+            (state.status != AP_UWB::Status::NoData));
 }
 
 // update status based on distance measurement
 void AP_UWB_Backend::update_status()
 {
-    // check distance
-    if (state.distance_m > max_distance_cm() * 0.01f) {
-        set_status(RangeFinder::Status::OutOfRangeHigh);
-    } else if (state.distance_m < min_distance_cm() * 0.01f) {
-        set_status(RangeFinder::Status::OutOfRangeLow);
-    } else {
-        set_status(RangeFinder::Status::Good);
-    }
+    // TODO sanity check?
+    set_status(AP_UWB::Status::Good);
 }
 
 // set status and update valid count
-void AP_UWB_Backend::set_status(RangeFinder::Status _status)
+void AP_UWB_Backend::set_status(AP_UWB::Status _status)
 {
     state.status = _status;
 
     // update valid count
-    if (_status == RangeFinder::Status::Good) {
+    if (_status == AP_UWB::Status::Good) {
         if (state.range_valid_count < 10) {
             state.range_valid_count++;
         }

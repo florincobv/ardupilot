@@ -27,7 +27,7 @@
 extern const AP_HAL::HAL &hal;
 
 // table of user settable parameters
-const AP_Param::GroupInfo UWB::var_info[] = {
+const AP_Param::GroupInfo AP_UWB::var_info[] = {
 
 	// @Group: 1_
 	// @Path: AP_UWB_Params.cpp
@@ -51,15 +51,15 @@ const AP_Param::GroupInfo UWB::var_info[] = {
     AP_GROUPEND
 };
 
-const AP_Param::GroupInfo *UWB::backend_var_info[UWB_MAX_INSTANCES];
+const AP_Param::GroupInfo *AP_UWB::backend_var_info[UWB_MAX_INSTANCES];
 
-UWB::UWB()
+AP_UWB::AP_UWB()
 {
     AP_Param::setup_object_defaults(this, var_info);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     if (_singleton != nullptr) {
-        AP_HAL::panic("UWB must be singleton");
+        AP_HAL::panic("AP_UWB must be singleton");
     }
 #endif // CONFIG_HAL_BOARD == HAL_BOARD_SITL
     _singleton = this;
@@ -70,7 +70,7 @@ UWB::UWB()
   finders here. For now we won't allow for hot-plugging of
   UWBs.
  */
-void UWB::init(const AP_SerialManager& serial_manager)
+void AP_UWB::init(const AP_SerialManager& serial_manager)
 {
     if (num_instances != 0) {
         // don't re-init if we've found some sensors already
@@ -81,7 +81,7 @@ void UWB::init(const AP_SerialManager& serial_manager)
     uint8_t uart_idx = 0;
     for (uint8_t i=0, serial_instance = 0; i<UWB_MAX_INSTANCES; i++) {
         _port[i] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_FLNC_UWB, uart_idx);
-        state[i].type = Type::FLNC_UWB_2;
+        // state[i].type = Type::FLNC_UWB_2; // TODO State heeft geen type en hoort die ook niet te hebben geloof ik
         uart_idx++;
 
         _last_instance_swap_ms = 0;
@@ -112,7 +112,7 @@ void UWB::init(const AP_SerialManager& serial_manager)
   update UWB state for all instances. This should be called at
   around 10Hz by main loop
  */
-void UWB::update(void)
+void AP_UWB::update(void)
 {
     for (uint8_t i=0; i<num_instances; i++) {
         if (drivers[i] != nullptr) {
@@ -130,7 +130,7 @@ void UWB::update(void)
 #endif
 }
 
-bool UWB::_add_backend(AP_UWB_Backend *backend, uint8_t instance, uint8_t serial_instance)
+bool AP_UWB::_add_backend(AP_UWB_Backend *backend, uint8_t instance, uint8_t serial_instance)
 {
     if (!backend) {
         return false;
@@ -153,9 +153,9 @@ bool UWB::_add_backend(AP_UWB_Backend *backend, uint8_t instance, uint8_t serial
 /*
   detect if an instance of a UWB is connected. 
  */
-void UWB::detect_instance(uint8_t instance, uint8_t& serial_instance)
+void AP_UWB::detect_instance(uint8_t instance, uint8_t& serial_instance)
 {
-    AP_UWB_Backend *(*serial_create_fn)(UWB::UWB_State&, AP_UWB_Params&) = nullptr;
+    AP_UWB_Backend* (*serial_create_fn)(AP_UWB::UWB_State&, AP_UWB_Params&) = nullptr;
 
     const Type _type = (Type)params[instance].type.get();
     switch (_type) {
@@ -168,7 +168,7 @@ void UWB::detect_instance(uint8_t instance, uint8_t& serial_instance)
     }
 
     if (serial_create_fn != nullptr) {
-        if (AP::serialmanager().have_serial(AP_SerialManager::SerialProtocol_UWB, serial_instance)) {
+        if (AP::serialmanager().have_serial(AP_SerialManager::SerialProtocol_FLNC_UWB, serial_instance)) {
             auto *b = serial_create_fn(state[instance], params[instance]);
             if (b != nullptr) {
                 _add_backend(b, instance, serial_instance++);
@@ -187,7 +187,7 @@ void UWB::detect_instance(uint8_t instance, uint8_t& serial_instance)
 
 }
 
-AP_UWB_Backend *UWB::get_backend(uint8_t id) const {
+AP_UWB_Backend* AP_UWB::get_backend(uint8_t id) const {
     if (id >= num_instances) {
         return nullptr;
     }
@@ -201,7 +201,7 @@ AP_UWB_Backend *UWB::get_backend(uint8_t id) const {
 };
 
 
-float UWB::distance_orient(enum Rotation orientation) const
+float AP_UWB::distance_orient(enum Rotation orientation) const
 {
     AP_UWB_Backend *backend = find_instance(orientation);
     if (backend == nullptr) {
@@ -210,7 +210,7 @@ float UWB::distance_orient(enum Rotation orientation) const
     return backend->distance();
 }
 
-uint32_t UWB::last_reading_ms(enum Rotation orientation) const
+uint32_t AP_UWB::last_reading_ms(enum Rotation orientation) const
 {
     AP_UWB_Backend *backend = find_instance(orientation);
     if (backend == nullptr) {
@@ -220,7 +220,7 @@ uint32_t UWB::last_reading_ms(enum Rotation orientation) const
 }
 
 // get temperature reading in C.  returns true on success and populates temp argument
-bool UWB::get_temp(enum Rotation orientation, float &temp) const
+bool AP_UWB::get_temp(enum Rotation orientation, float &temp) const
 {
     AP_UWB_Backend *backend = find_instance(orientation);
     if (backend == nullptr) {
@@ -230,11 +230,11 @@ bool UWB::get_temp(enum Rotation orientation, float &temp) const
 }
 
 
-UWB *UWB::_singleton;
+AP_UWB* AP_UWB::_singleton;
 
 namespace AP {
 
-UWB *UWB()
+AP_UWB* AP_UWB()
 {
     return UWB::get_singleton();
 }

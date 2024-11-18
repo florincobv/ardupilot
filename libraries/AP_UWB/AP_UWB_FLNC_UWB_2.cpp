@@ -37,10 +37,10 @@ extern const AP_HAL::HAL& hal;
 
 
 AP_UWB_FLNC_UWB_2::AP_UWB_FLNC_UWB_2(AP_UWB::UWB_State &_state, AP_HAL::UARTDriver *_port, AP_UWB_Params &_params)
+    : AP_UWB_Backend_Serial(_state, _params)
 {
-    rxState     = UWB_SER_W AIT_START;
+    rxState     = UWB_SER_WAIT_START;
     linebuf_len = 0;
-    
 }
 
 // format of serial packets received from rangefinder
@@ -67,7 +67,7 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
             break;
         }
 
-        linebuf[linebuf_len] = c
+        linebuf[linebuf_len] = c;
         switch (rxState)
         {
             case UWB_SER_WAIT_START:

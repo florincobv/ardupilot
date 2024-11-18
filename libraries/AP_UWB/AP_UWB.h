@@ -31,16 +31,16 @@
 
 class AP_UWB_Backend;
 
-class UWB
+class AP_UWB
 {
     friend class AP_UWB_Backend;
     //UAVCAN drivers are initialised in the Backend, hence list of drivers is needed there.
     friend class AP_UWB_FLNC_UWB_2;
 public:
-    UWB();
+    AP_UWB();
 
     /* Do not allow copies */
-    CLASS_NO_COPY(UWB);
+    CLASS_NO_COPY(AP_UWB);
 
     // UWB driver types
     enum class Type {
@@ -55,6 +55,9 @@ public:
 
     enum class Status {
         NotConnected = 0,
+        NoData,
+//        OutOfRangeHigh,
+//        OutOfRangeLow,
         Good
     };
 
@@ -67,11 +70,13 @@ public:
         uint8_t instance; // the instance number of this UWB
 
         float distance_m;               // distance in meters
-
         uint16_t range_valid_count;
         uint64_t last_reading_ms;
+        int8_t   signal_quality_pct;
         
         const struct AP_Param::GroupInfo *var_info;
+        
+        enum AP_UWB::Status status; // sensor status
     };
 
     static const struct AP_Param::GroupInfo *backend_var_info[UWB_MAX_INSTANCES];
@@ -107,13 +112,13 @@ public:
     bool get_temp(enum Rotation orientation, float &temp) const;
 
     
-    static UWB *get_singleton(void) { return _singleton; }
+    static AP_UWB *get_singleton(void) { return _singleton; }
 
 protected:
     AP_UWB_Params params[UWB_MAX_INSTANCES];
 
 private:
-    static UWB *_singleton;
+    static AP_UWB *_singleton;
 
     UWB_State state[UWB_MAX_INSTANCES];
     AP_UWB_Backend *drivers[UWB_MAX_INSTANCES];
@@ -128,5 +133,5 @@ private:
 };
 
 namespace AP {
-    UWB *uwb();
+    AP_UWB *uwb();
 };

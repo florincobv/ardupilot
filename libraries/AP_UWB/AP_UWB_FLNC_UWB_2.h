@@ -6,6 +6,7 @@
 
 #include "AP_UWB.h"
 #include "AP_UWB_Backend.h"
+#include "AP_UWB_Backend_Serial.h"
 
 #define AP_UWB_MAX_MSG_SIZE 50
 
@@ -37,7 +38,7 @@ typedef enum {
 	UWB_FLNC_DRONE_POSITION 	= 0xF1,
 } UWB_FLNC_CMDS;
 
-class AP_UWB_FLNC_UWB_2 : public AP_UWB_Backend
+class AP_UWB_FLNC_UWB_2 : public AP_UWB_Backend_Serial
 {
 
 public:
@@ -46,11 +47,11 @@ public:
 
 protected:
 
-    using AP_UWB_Backend::AP_UWB_Backend_Serial;
+    using AP_UWB_Backend_Serial::AP_UWB_Backend_Serial;
 
 private:
     
-    bool handle_serial() override;
+    bool handle_serial();
     void handle_packet();
 
     uint8_t linebuf[AP_UWB_MAX_MSG_SIZE];

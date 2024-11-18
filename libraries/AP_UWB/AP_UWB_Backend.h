@@ -23,7 +23,7 @@ class AP_UWB_Backend
 {
 public:
     // constructor. This incorporates initialisation as well.
-	AP_UWB_Backend(AP_UWB::Status &_state, AP_UWB_Params &_params);
+	AP_UWB_Backend(AP_UWB::UWB_State &_state, AP_UWB_Params &_params);
 
     // we declare a virtual destructor so that UWB drivers can
     // override with a custom destructor if need be
@@ -34,8 +34,8 @@ public:
     virtual void init_serial(uint8_t serial_instance) {};
 
     float distance() const { return state.distance_m; }
-    UWB::Status status() const;
-    UWB::Type type() const { return (UWB::Type)params.type.get(); }
+    AP_UWB::Status status() const;
+    AP_UWB::Type type() const { return (AP_UWB::Type)params.type.get(); }
 
     // true if sensor is returning data
     bool has_data() const;
@@ -51,7 +51,7 @@ public:
 
     // return the actual type of the UWB, as opposed to the
     // parameter value which may be changed at runtime.
-    UWB::Type allocated_type() const { return _backend_type; }
+    AP_UWB::Type allocated_type() const { return _backend_type; }
 
 protected:
 
@@ -60,15 +60,15 @@ protected:
     void update_status();
 
     // set status and update valid_count
-    void set_status(UWB::Status status);
+    void set_status(AP_UWB::Status status);
 
-    UWB::UWB_State &state;
+    AP_UWB::UWB_State &state;
     AP_UWB_Params &params;
 
     // semaphore for access to shared frontend data
     HAL_Semaphore _sem;
 
     //Type Backend initialised with
-    UWB::Type _backend_type;
+    AP_UWB::Type _backend_type;
 
 };
