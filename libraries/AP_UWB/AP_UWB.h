@@ -70,6 +70,7 @@ public:
     struct UWB_State {
         uint8_t instance; // the instance number of this UWB
 
+        float distance_m;               // distance in meters
         uint16_t range_valid_count;
         uint64_t last_reading_ms;
         int8_t   signal_quality_pct;
