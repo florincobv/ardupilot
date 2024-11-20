@@ -15,6 +15,7 @@
 
 #include "AP_UWB.h"
 #include "AP_UWB_Backend.h"
+#include "AP_UWB_Backend_Serial.h"
 #include "AP_UWB_FLNC_UWB_2.h"
 
 #include <AP_BoardConfig/AP_BoardConfig.h>
@@ -84,8 +85,6 @@ void AP_UWB::init(const AP_SerialManager& serial_manager)
         // state[i].type = Type::FLNC_UWB_2; // TODO State heeft geen type en hoort die ook niet te hebben geloof ik
         uart_idx++;
 
-        _last_instance_swap_ms = 0;
-
         state[i].instance = i;
 
         // serial_instance will be increased inside detect_instance
@@ -122,11 +121,11 @@ void AP_UWB::update(void)
                 state[i].range_valid_count = 0;
                 continue;
             }
-            drivers[i]->handle_serial();
+            drivers[i]->update();
         }
     }
 #if HAL_LOGGING_ENABLED
-    Log_RFND();
+    // Log_RFND();
 #endif
 }
 
@@ -136,7 +135,7 @@ bool AP_UWB::_add_backend(AP_UWB_Backend *backend, uint8_t instance, uint8_t ser
         return false;
     }
     if (instance >= UWB_MAX_INSTANCES) {
-        AP_HAL::panic("Too many RANGERS backends");
+        AP_HAL::panic("Too many UWB backends");
     }
     if (drivers[instance] != nullptr) {
         // we've allocated the same instance twice
@@ -163,6 +162,8 @@ void AP_UWB::detect_instance(uint8_t instance, uint8_t& serial_instance)
         _add_backend(new AP_UWB_FLNC_UWB_2(state[instance], _port[instance], params[instance]), instance);
         break;
 
+    case Type::SIM:
+        break;
     case Type::NONE:
         break;
     }
@@ -229,14 +230,18 @@ bool AP_UWB::get_temp(enum Rotation orientation, float &temp) const
     return backend->get_temp(temp);
 }
 
+AP_UWB_Backend* AP_UWB::find_instance(enum Rotation orientation) const
+{
+    return nullptr;
+}
 
 AP_UWB* AP_UWB::_singleton;
 
 namespace AP {
 
-AP_UWB* AP_UWB()
+AP_UWB &uwb()
 {
-    return UWB::get_singleton();
+    return *AP_UWB::get_singleton();
 }
 
 }

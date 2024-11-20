@@ -50,7 +50,7 @@ uint32_t AP_UWB_Backend_Serial::initial_baudrate(const uint8_t serial_instance) 
 /*
    update the state of the sensor
 */
-void AP_UWB_Backend_Serial::update(void)
+bool AP_UWB_Backend_Serial::update()
 {
     if (get_reading(state.distance_m)) {
         state.signal_quality_pct = get_signal_quality_pct();
@@ -60,4 +60,5 @@ void AP_UWB_Backend_Serial::update(void)
     } else if (AP_HAL::millis() - state.last_reading_ms > read_timeout_ms()) {
         set_status(AP_UWB::Status::NoData);
     }
+    return true;
 }

@@ -34,6 +34,7 @@ class AP_UWB_Backend;
 class AP_UWB
 {
     friend class AP_UWB_Backend;
+    friend class AP_UWB_Backend_Serial;
     //UAVCAN drivers are initialised in the Backend, hence list of drivers is needed there.
     friend class AP_UWB_FLNC_UWB_2;
 public:
@@ -69,7 +70,6 @@ public:
     struct UWB_State {
         uint8_t instance; // the instance number of this UWB
 
-        float distance_m;               // distance in meters
         uint16_t range_valid_count;
         uint64_t last_reading_ms;
         int8_t   signal_quality_pct;
@@ -130,8 +130,13 @@ private:
 
     bool _add_backend(AP_UWB_Backend *driver, uint8_t instance, uint8_t serial_instance=0);
 
+    AP_UWB_Backend* get_backend(uint8_t id) const;
+    AP_UWB_Backend* find_instance(enum Rotation orientation) const;
+
+
+
 };
 
 namespace AP {
-    AP_UWB *uwb();
+    AP_UWB &uwb();
 };

@@ -43,6 +43,17 @@ AP_UWB_FLNC_UWB_2::AP_UWB_FLNC_UWB_2(AP_UWB::UWB_State &_state, AP_HAL::UARTDriv
     linebuf_len = 0;
 }
 
+AP_UWB_FLNC_UWB_2::~AP_UWB_FLNC_UWB_2()
+{
+
+}
+
+bool AP_UWB_FLNC_UWB_2::update()
+{
+    handle_packet();
+    return true;
+}
+
 // format of serial packets received from rangefinder
 //
 // Data Bit             Definition      Description
@@ -96,7 +107,7 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
                 break;
 
             case UWB_SER_WAIT_CRC:
-                if (packet->checkCRC())
+                if (checkCRC())
                     rxState = UWB_SER_PACKET_DONE;
                 else
                     rxState = UWB_SER_PACKET_CRC_ERROR;
@@ -127,22 +138,36 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
 
 void AP_UWB_FLNC_UWB_2::handle_packet()
 {
-    switch ((UWB_FLNC_CMDS)linebuf[1])
+    switch (linebuf[1])
     {
-        case UWB_FLNC_RAW_BARO_MEASUREMENT:
-            float pressure  = bufferToFloat(linebuf+3);
-            float sigma     = bufferToFloat(linebuf+7);
-            break;
         case UWB_FLNC_GROUND_PRESSURE:
-            uint16_t anchorID   = bufferToHWord(linebuf+3)
-            float pressure      = bufferToFloat(linebuf+5);
-            float sigma         = bufferToFloat(linebuf+9);
+        {
+            // uint16_t anchorID   = bufferToHWord(linebuf+3);
+            // float pressure      = bufferToFloat(linebuf+5);
+            // float sigma         = bufferToFloat(linebuf+9);
             break;
-
+        }
+        case UWB_FLNC_RAW_BARO_MEASUREMENT:
+        {
+            // float pressure  = bufferToFloat(linebuf+3);
+            // float sigma     = bufferToFloat(linebuf+7);
+            break;
+        }
         default:
             break;
     }
     return;
 }
+
+bool AP_UWB_FLNC_UWB_2::checkCRC()
+{
+    return true;
+}
+
+bool AP_UWB_FLNC_UWB_2::get_reading(float &reading_m)
+{
+    return false;
+}
+
 
 #endif // AP_UWB_FLNC_UWB_2_ENABLED

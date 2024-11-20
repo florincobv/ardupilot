@@ -30,7 +30,6 @@ public:
     virtual ~AP_UWB_Backend(void) {}
 
     // update the state structure
-    virtual void update() = 0;
     virtual void init_serial(uint8_t serial_instance) {};
 
     float distance() const { return state.distance_m; }
@@ -49,9 +48,13 @@ public:
     // get temperature reading in C.  returns true on success and populates temp argument
     virtual bool get_temp(float &temp) const { return false; }
 
+
     // return the actual type of the UWB, as opposed to the
     // parameter value which may be changed at runtime.
     AP_UWB::Type allocated_type() const { return _backend_type; }
+
+    // get temperature reading in C.  returns true on success and populates temp argument
+    virtual bool update() const { return false; }
 
 protected:
 

@@ -11,6 +11,9 @@ public:
 
     void init_serial(uint8_t serial_instance) override;
 
+    // update state; not all backends call this!
+    virtual bool update();
+
 protected:
 
     // baudrate used during object construction:
@@ -22,8 +25,6 @@ protected:
 
     AP_HAL::UARTDriver *uart = nullptr;
 
-    // update state; not all backends call this!
-    virtual void update(void) override;
 
     // it is essential that anyone relying on the base-class update to
     // implement this:
