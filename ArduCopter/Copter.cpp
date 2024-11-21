@@ -153,6 +153,10 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
     SCHED_TASK(fence_check,           25,    100,  7),
 #endif
     SCHED_TASK_CLASS(AP_GPS,               &copter.gps,                 update,          50, 200,   9),
+    
+#ifdef AP_UWB_ENABLED
+    SCHED_TASK_CLASS(AP_UWB, &copter.uwb, update, 150, 100, 10),
+#endif
 #if AP_OPTICALFLOW_ENABLED
     SCHED_TASK_CLASS(AP_OpticalFlow,          &copter.optflow,             update,         200, 160,  12),
 #endif
