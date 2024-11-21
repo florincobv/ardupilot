@@ -191,6 +191,10 @@ void Copter::init_ardupilot()
     custom_control.init();
 #endif
 
+#ifdef AP_UWB_ENABLED
+    uwb.init(serial_manager);
+#endif
+
     // set landed flags
     set_land_complete(true);
     set_land_complete_maybe(true);

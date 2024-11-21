@@ -170,6 +170,11 @@
 #if HAL_ADSB_ENABLED
 #include "avoidance_adsb.h"
 #endif
+
+#ifdef AP_UWB_ENABLED
+#include <AP_UWB/AP_UWB.h>
+#endif
+
 // Local modules
 #include "Parameters.h"
 #if USER_PARAMS_ENABLED
@@ -330,6 +335,10 @@ private:
     AP_ExternalControl_Copter external_control;
 #endif
 
+    // UWB Sensor
+#ifdef AP_UWB_ENABLED
+    AP_UWB uwb;
+#endif
 
     // system time in milliseconds of last recorded yaw reset from ekf
     uint32_t ekfYawReset_ms;
