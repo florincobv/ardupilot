@@ -27,7 +27,7 @@ extern const AP_HAL::HAL& hal;
 */
 AP_UWB_Backend::AP_UWB_Backend(AP_UWB::UWB_State &_state, AP_UWB_Params &_params) :
         state(_state),
-		params(_params)
+        params(_params)
 {
     _backend_type = type();
 }
