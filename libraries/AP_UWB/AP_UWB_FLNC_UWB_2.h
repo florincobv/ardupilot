@@ -58,6 +58,7 @@ private:
     bool handle_serial();
     void handle_packet();
     bool checkCRC();
+    uint8_t calcCRC(uint8_t packetLength);
     bool send_message(uint8_t cmd, uint8_t length, const void *msg);
     bool send_byte(uint8_t data);
 
