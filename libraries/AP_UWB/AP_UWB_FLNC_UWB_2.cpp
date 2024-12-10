@@ -53,7 +53,7 @@ AP_UWB_FLNC_UWB_2::~AP_UWB_FLNC_UWB_2()
 bool AP_UWB_FLNC_UWB_2::update()
 {
     // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB Update");
-    handle_packet();
+    handle_serial();
     return true;
 }
 
@@ -71,6 +71,7 @@ bool AP_UWB_FLNC_UWB_2::update()
 bool AP_UWB_FLNC_UWB_2::handle_serial()
 {
     if (uart == nullptr) {
+        // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB nptr");
         return false;
     }
 
@@ -82,9 +83,10 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
         }
 
         // Temp loopback/echo
-        send_byte(c);
+        // send_byte(c);
 
         linebuf[linebuf_len] = c;
+        // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB (%u|%u)",linebuf[linebuf_len],linebuf_len);
         switch (rxState)
         {
             case UWB_SER_WAIT_START:
@@ -107,7 +109,7 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
 
             case UWB_SER_WAIT_DATA:
                 linebuf_len++;
-                if (linebuf_len >= linebuf[2])// DataLength + 3 bytesbuffer(start + cmd + length)
+                if (linebuf_len >= linebuf[2] + 3)// DataLength + 3 bytesbuffer(start + cmd + length)
                     rxState = UWB_SER_WAIT_CRC;
 
                 break;
@@ -128,12 +130,14 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
         {
             handle_packet();
             rxState = UWB_SER_WAIT_START;
+            linebuf_len = 0;
             return true;
         }
         if (rxState == UWB_SER_PACKET_CRC_ERROR)
         {
             //TODO: handle Error
             rxState = UWB_SER_WAIT_START;
+            linebuf_len = 0;
             return false;
         }
     }
@@ -157,6 +161,7 @@ void AP_UWB_FLNC_UWB_2::handle_packet()
         {
             state.last_baro_data.tag.pressure = bufferToFloat(linebuf+3);
             state.last_baro_data.tag.sigma    = bufferToFloat(linebuf+7);
+            // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB BARO: %f|%f", state.last_baro_data.tag.pressure, state.last_baro_data.tag.sigma);
             break;
         }
         default:
@@ -167,7 +172,27 @@ void AP_UWB_FLNC_UWB_2::handle_packet()
 
 bool AP_UWB_FLNC_UWB_2::checkCRC()
 {
-    return true;
+    // uint8_t crc = calcCRC(linebuf_len - 4);
+    // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB CRC: 0x%02X|0x%02X", linebuf[linebuf_len], crc);
+    
+    return ( linebuf[linebuf_len] == calcCRC(linebuf_len - 4) );
+}
+
+/*
+ * Calculate the crc for the packet stored in the class
+ *
+ * @return: (uint8_t)The calculated crc
+ */
+uint8_t AP_UWB_FLNC_UWB_2::calcCRC(uint8_t packetLength)
+{
+	uint8_t crc = 0;
+
+	// _length is data length
+	for (uint16_t index = 1; index <= packetLength +2U; index++)
+	{
+		crc += linebuf[index];
+	}
+	return crc;
 }
 
 bool AP_UWB_FLNC_UWB_2::get_reading(float &reading_m)
