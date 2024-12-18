@@ -67,6 +67,8 @@ public:
     virtual void handle_msg(const mavlink_message_t &msg) { return ; }
 #endif
 
+    virtual void handle_uwbmsg(const mavlink_message_t &msg) { return ; }
+
     virtual void broadcast_configuration_failure_reason(void) const { return ; }
 
 #if HAL_MSP_GPS_ENABLED

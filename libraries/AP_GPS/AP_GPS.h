@@ -88,6 +88,7 @@ class AP_GPS
     friend class AP_GPS_UBLOX;
     friend class AP_GPS_Backend;
     friend class AP_GPS_DroneCAN;
+    friend class AP_GPS_FLNC_UWB;
 
 public:
     AP_GPS();
@@ -135,6 +136,7 @@ public:
 #if HAL_SIM_GPS_ENABLED
         GPS_TYPE_SITL = 100,
 #endif
+        GPS_TYPE_FLNC_UWB = 200,
     };
 
     /// GPS status codes.  These are kept aligned with MAVLink by
