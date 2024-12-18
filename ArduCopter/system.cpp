@@ -128,6 +128,10 @@ void Copter::init_ardupilot()
     landinggear.init();
 #endif
 
+#ifdef AP_UWB_ENABLED
+    uwb.init(serial_manager);
+#endif
+
 #ifdef USERHOOK_INIT
     USERHOOK_INIT
 #endif
@@ -179,10 +183,6 @@ void Copter::init_ardupilot()
 
 #if AC_CUSTOMCONTROL_MULTI_ENABLED
     custom_control.init();
-#endif
-
-#ifdef AP_UWB_ENABLED
-    uwb.init(serial_manager);
 #endif
 
     // set landed flags

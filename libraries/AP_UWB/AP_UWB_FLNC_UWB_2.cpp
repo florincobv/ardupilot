@@ -20,7 +20,7 @@
 
 #ifdef AP_UWB_FLNC_UWB_2_ENABLED
 
-
+#include <AP_Baro/AP_Baro.h>
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/utility/sparse-endian.h>
 #include <AP_Math/AP_Math.h>
@@ -43,6 +43,9 @@ AP_UWB_FLNC_UWB_2::AP_UWB_FLNC_UWB_2(AP_UWB::UWB_State &_state, AP_HAL::UARTDriv
     rxState     = UWB_SER_WAIT_START;
     linebuf_len = 0;
     gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB Create Backend");
+// TODO TEST!
+    state.last_baro_data.tag.pressure = 1000;
+    state.last_baro_data.tag.sigma = 0.2;
 }
 
 AP_UWB_FLNC_UWB_2::~AP_UWB_FLNC_UWB_2()
@@ -54,6 +57,9 @@ bool AP_UWB_FLNC_UWB_2::update()
 {
     // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB Update");
     handle_serial();
+// TODO TEST!
+    //state.last_baro_data.tag.pressure += 0.1;
+    AP_Baro::get_singleton()->set_data(state.last_baro_data.tag.pressure, state.last_baro_data.tag.sigma);
     return true;
 }
 
@@ -161,6 +167,7 @@ void AP_UWB_FLNC_UWB_2::handle_packet()
         {
             state.last_baro_data.tag.pressure = bufferToFloat(linebuf+3);
             state.last_baro_data.tag.sigma    = bufferToFloat(linebuf+7);
+            AP_Baro::get_singleton()->set_data(state.last_baro_data.tag.pressure, state.last_baro_data.tag.sigma);
             // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB BARO: %f|%f", state.last_baro_data.tag.pressure, state.last_baro_data.tag.sigma);
             break;
         }
@@ -202,7 +209,7 @@ bool AP_UWB_FLNC_UWB_2::get_reading(float &reading_m)
 
 bool AP_UWB_FLNC_UWB_2::send_message(uint8_t cmd, uint8_t length, const void *msg)
 {
-    if (uart->txspace() < (length + 4)) // Length (Data) + 4(start + cmd + length + crc)
+    if (uart->txspace() < (uint32_t)(length + 4)) // Length (Data) + 4(start + cmd + length + crc)
         return false;
     
     // Calc crc

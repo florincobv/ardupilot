@@ -8,6 +8,7 @@
 #include <Filter/DerivativeFilter.h>
 #include <AP_MSP/msp.h>
 #include <AP_ExternalAHRS/AP_ExternalAHRS.h>
+#include <AP_UWB/AP_UWB_config.h>
 
 // maximum number of sensor instances
 #ifndef BARO_MAX_INSTANCES
@@ -58,6 +59,10 @@ public:
     bool healthy(void) const { return healthy(_primary); }
 
     bool healthy(uint8_t instance) const;
+
+#if AP_UWB_ENABLED
+    void set_data(float pressure, float sigma);
+#endif
 
     // check if all baros are healthy - used for SYS_STATUS report
     bool all_healthy(void) const;
