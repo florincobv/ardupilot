@@ -273,6 +273,19 @@ AP_Baro::AP_Baro()
     AP_Param::setup_object_defaults(this, var_info);
     _field_elevation_active = _field_elevation;
 }
+#if AP_UWB_ENABLED
+void AP_Baro::set_data(float pressure, float sigma)
+{
+    uint8_t i;
+    for (i=0; i<num_instances(); i++) 
+    {
+        if (drivers[i] != nullptr) 
+        {
+            drivers[i]->set_data(pressure, sigma);
+        }
+    }
+}
+#endif
 
 // calibrate the barometer. This must be called at least once before
 // the altitude() or climb_rate() interfaces can be used

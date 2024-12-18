@@ -32,6 +32,11 @@ public:
     virtual void handle_external(const AP_ExternalAHRS::baro_data_message_t &pkt) {}
 #endif
 
+#if AP_UWB_ENABLED
+    virtual void set_data(float pressure, float sigma) { return ; }
+#endif
+
+
     /*
       device driver IDs. These are used to fill in the devtype field
       of the device ID, which shows up as BARO_DEVID* parameters to
