@@ -42,10 +42,13 @@ AP_UWB_FLNC_UWB_2::AP_UWB_FLNC_UWB_2(AP_UWB::UWB_State &_state, AP_HAL::UARTDriv
 {
     rxState     = UWB_SER_WAIT_START;
     linebuf_len = 0;
-    gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB Create Backend");
-// TODO TEST!
-    state.last_baro_data.tag.pressure = 1000;
-    state.last_baro_data.tag.sigma = 0.2;
+    gcs().send_text(MAV_SEVERITY_INFO, "UWB Create Backend");
+
+    if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_UWB_FLNC_UWB_2::update_thread, void), "UWB", 2048, AP_HAL::Scheduler::PRIORITY_SPI, 0)) 
+    {
+        AP_HAL::panic("Florinco UWB Failed to start UWB update thread");
+    }
+
 }
 
 AP_UWB_FLNC_UWB_2::~AP_UWB_FLNC_UWB_2()
@@ -53,13 +56,34 @@ AP_UWB_FLNC_UWB_2::~AP_UWB_FLNC_UWB_2()
 
 }
 
+void AP_UWB_FLNC_UWB_2::update_thread()
+{
+    // // Open port in the thread
+    // uart->begin(baudrate, 1024, 512);
+    gcs().send_text(MAV_SEVERITY_INFO, "Start UWB Update thread");
+
+    uint32_t lastMessageTime = AP_HAL::millis();
+    while (true)
+    {
+        if (handle_serial())
+        {
+            lastMessageTime = AP_HAL::millis();
+        }
+        else
+        {
+            if ((AP_HAL::millis() - lastMessageTime) > 2000)
+            {
+                gcs().send_text(MAV_SEVERITY_CRITICAL, "No UWB Update in 2 seconds");
+                lastMessageTime = AP_HAL::millis();
+            }
+            hal.scheduler->delay(1);
+        }
+    }
+}
+
 bool AP_UWB_FLNC_UWB_2::update()
 {
     // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB Update");
-    handle_serial();
-// TODO TEST!
-    //state.last_baro_data.tag.pressure += 0.1;
-    AP_Baro::get_singleton()->set_data(state.last_baro_data.tag.pressure, state.last_baro_data.tag.sigma);
     return true;
 }
 
@@ -73,13 +97,15 @@ bool AP_UWB_FLNC_UWB_2::update()
 // byte x               DATA            Packet Data
 // byte x               CRC8            packet CRC
 
-// distance returned in reading_m, set to true if sensor reports a good reading
 bool AP_UWB_FLNC_UWB_2::handle_serial()
 {
     if (uart == nullptr) {
-        // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB nptr");
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB nptr");
         return false;
     }
+
+    // ensure we own the uart
+    uart->begin(0);
 
     // read any available lines from Serial interface
     for (auto i=0; i<512; i++) {
@@ -137,6 +163,7 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
             handle_packet();
             rxState = UWB_SER_WAIT_START;
             linebuf_len = 0;
+
             return true;
         }
         if (rxState == UWB_SER_PACKET_CRC_ERROR)
@@ -144,6 +171,8 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
             //TODO: handle Error
             rxState = UWB_SER_WAIT_START;
             linebuf_len = 0;
+
+            gcs().send_text(MAV_SEVERITY_WARNING, "UWB CRC error");
             return false;
         }
     }

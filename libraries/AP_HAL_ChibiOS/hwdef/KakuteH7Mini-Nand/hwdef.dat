@@ -4,6 +4,7 @@ include ../KakuteH7Mini/hwdef.dat
 
 undef mpu6000
 undef IMU
+undef BARO
 
 SPIDEV bmi270    SPI4 DEVID1 MPU6000_CS    MODE3  1*MHZ  4*MHZ
 
@@ -13,6 +14,8 @@ define HAL_LOGGING_DATAFLASH_DRIVER AP_Logger_W25N01GV
 
 define DEFAULT_NTF_LED_TYPES 257
 
-define AP_UWB_ENABLED
+define AP_UWB_ENABLED 1
 define DEFAULT_SERIAL4_PROTOCOL SerialProtocol_FLNC_UWB
 define DEFAULT_SERIAL4_BAUD 115
+
+BARO FLNCUWB
