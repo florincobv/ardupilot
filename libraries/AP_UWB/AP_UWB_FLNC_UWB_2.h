@@ -62,6 +62,7 @@ private:
     bool send_message(uint8_t cmd, uint8_t length, const void *msg);
     bool send_byte(uint8_t data);
 
+    void update_thread();
 
     uint8_t linebuf[AP_UWB_MAX_MSG_SIZE];
     uint8_t linebuf_len;

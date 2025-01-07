@@ -50,13 +50,11 @@ void AP_Baro_FLNCUWB::set_data(float pressure, float sigma)
 
     //float cur_pressure, cur_temperature;
     last_temperature = temperature;
-    //gcs().send_text(MAV_SEVERITY_WARNING, "Setdata");
     
     if (!pressure_ok(pressure)) 
     {
         return;
     }
-    //gcs().send_text(MAV_SEVERITY_WARNING, "OK");
 
     if (fabsf(last_temperature) > TEMPERATURE_LIMIT_C) 
     {
@@ -87,7 +85,7 @@ void AP_Baro_FLNCUWB::update(void)
         
     WITH_SEMAPHORE(_sem);
 
-    _copy_to_frontend(instance, /*100000*/ pressure_sum*1000/count, temperature_sum/count); // Pressure in pascal
+    _copy_to_frontend(instance, pressure_sum*1000/count, temperature_sum/count); // Pressure in pascal
     pressure_sum = 0;
     temperature_sum = 0;
     count=0;
