@@ -118,6 +118,7 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
         // send_byte(c);
 
         linebuf[linebuf_len] = c;
+        linebuf_len++;
         // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB (%u|%u)",linebuf[linebuf_len],linebuf_len);
         switch (rxState)
         {
@@ -147,6 +148,7 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
                 break;
 
             case UWB_SER_WAIT_CRC:
+                linebuf_len++;
                 if (checkCRC())
                     rxState = UWB_SER_PACKET_DONE;
                 else
@@ -208,10 +210,10 @@ void AP_UWB_FLNC_UWB_2::handle_packet()
 
 bool AP_UWB_FLNC_UWB_2::checkCRC()
 {
-    // uint8_t crc = calcCRC(linebuf_len - 4);
+    // uint8_t crc = calcCRC(linebuf_len - 4+1);
     // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB CRC: 0x%02X|0x%02X", linebuf[linebuf_len], crc);
     
-    return ( linebuf[linebuf_len] == calcCRC(linebuf_len - 4) );
+    return ( linebuf[linebuf_len] == calcCRC(linebuf_len - 4+1) );
 }
 
 /*
