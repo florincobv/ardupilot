@@ -118,37 +118,35 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
         // send_byte(c);
 
         linebuf[linebuf_len] = c;
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB (%u|%u)",linebuf[linebuf_len],linebuf_len);
         linebuf_len++;
-        // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB (%u|%u)",linebuf[linebuf_len],linebuf_len);
         switch (rxState)
         {
             case UWB_SER_WAIT_START:
-                if (linebuf[linebuf_len] == 0xAA)
-                {
-                    linebuf_len++;
+                if (linebuf[linebuf_len-1] == 0xAA)
                     rxState = UWB_SER_WAIT_CMD;
-                }
+                else
+                    linebuf_len--;
                 break;
 
             case UWB_SER_WAIT_CMD:
-                linebuf_len++;
                 rxState = UWB_SER_WAIT_LENGTH;
                 break;
 
             case UWB_SER_WAIT_LENGTH:
-                linebuf_len++;
-                rxState = UWB_SER_WAIT_DATA;
+                if (linebuf[2] == 0)
+                    rxState = UWB_SER_WAIT_CRC;
+                else
+                    rxState = UWB_SER_WAIT_DATA;
                 break;
 
             case UWB_SER_WAIT_DATA:
-                linebuf_len++;
                 if (linebuf_len >= linebuf[2] + 3)// DataLength + 3 bytesbuffer(start + cmd + length)
                     rxState = UWB_SER_WAIT_CRC;
 
                 break;
 
             case UWB_SER_WAIT_CRC:
-                linebuf_len++;
                 if (checkCRC())
                     rxState = UWB_SER_PACKET_DONE;
                 else
@@ -210,10 +208,10 @@ void AP_UWB_FLNC_UWB_2::handle_packet()
 
 bool AP_UWB_FLNC_UWB_2::checkCRC()
 {
-    // uint8_t crc = calcCRC(linebuf_len - 4+1);
-    // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB CRC: 0x%02X|0x%02X", linebuf[linebuf_len], crc);
+    uint8_t crc = calcCRC(linebuf_len - 4);
+    gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB CRC: 0x%02X|0x%02X", linebuf[linebuf_len-1], crc);
     
-    return ( linebuf[linebuf_len] == calcCRC(linebuf_len - 4+1) );
+    return ( linebuf[linebuf_len-1] == calcCRC(linebuf_len - 4) );
 }
 
 /*
