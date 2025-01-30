@@ -29,7 +29,7 @@ while getopts "yq" opt; do
     esac
 done
 
-APT_GET="sudo apt-get"
+APT_GET="sudo DEBIAN_FRONTEND=noninteractive apt-get"
 if $ASSUME_YES; then
     APT_GET="$APT_GET --assume-yes"
 fi
@@ -365,7 +365,7 @@ if [ ${RELEASE_CODENAME} == 'lunar' ] ||
 fi
 
 # try update setuptools and wheel before installing pip package that may need compilation
-$PIP install $PIP_USER_ARGUMENT -U pip setuptools wheel
+$PIP install $PIP_USER_ARGUMENT -U pip setuptools==70.3.0 wheel
 
 if [ "$GITHUB_ACTIONS" == "true" ]; then
     PIP_USER_ARGUMENT+=" --progress-bar off"

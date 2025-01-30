@@ -7,9 +7,9 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG USER_NAME=ardupilot
 ARG USER_UID=1000
 ARG USER_GID=1000
-ARG SKIP_AP_EXT_ENV=1
-ARG SKIP_AP_GRAPHIC_ENV=1
-ARG SKIP_AP_COV_ENV=1
+ARG SKIP_AP_EXT_ENV=0
+ARG SKIP_AP_GRAPHIC_ENV=0
+ARG SKIP_AP_COV_ENV=0
 ARG SKIP_AP_GIT_CHECK=1
 
 RUN groupadd ${USER_NAME} --gid ${USER_GID}\
@@ -54,6 +54,7 @@ RUN export ARDUPILOT_ENTRYPOINT="/home/${USER_NAME}/ardupilot_entrypoint.sh" \
 
 # Set the buildlogs directory into /tmp as other directory aren't accessible
 ENV BUILDLOGS=/tmp/buildlogs
+ENV PATH="$PATH:/opt/gcc-arm-none-eabi-10-2020-q4-major/bin/"
 
 # Cleanup
 RUN sudo apt-get clean \
@@ -61,4 +62,5 @@ RUN sudo apt-get clean \
 
 ENV CCACHE_MAXSIZE=1G
 ENTRYPOINT ["/ardupilot_entrypoint.sh"]
+
 CMD ["bash"]
