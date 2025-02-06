@@ -42,9 +42,8 @@ AP_Baro_Backend* AP_Baro_FLNCUWB::probe(AP_Baro& baro)
 }
 
 //  accumulate a new sensor reading
-void AP_Baro_FLNCUWB::set_data(float pressure, float sigma)
+void AP_Baro_FLNCUWB::set_data(float pressure, float variance)
 {
- // 400hz
     // TODO add temperature
     float temperature = 20;
 
@@ -85,7 +84,7 @@ void AP_Baro_FLNCUWB::update(void)
         
     WITH_SEMAPHORE(_sem);
 
-    _copy_to_frontend(instance, pressure_sum*1000/count, temperature_sum/count); // Pressure in pascal
+    _copy_to_frontend(instance, pressure_sum/count, temperature_sum/count); // Pressure in pascal
     pressure_sum = 0;
     temperature_sum = 0;
     count=0;

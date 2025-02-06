@@ -24,6 +24,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/utility/sparse-endian.h>
 #include <AP_Math/AP_Math.h>
+#include <AP_Logger/AP_Logger.h>
 #include <ctype.h>
 #include <cstring>
 
@@ -35,6 +36,9 @@ extern const AP_HAL::HAL& hal;
 #define OUT_OF_RANGE_ADD_CM 1000
 #define STATUS_MASK 0x1F
 #define DISTANCE_ERROR 0x0001
+// TODO Make params of it
+#define AP_UWB_DEFAULT_PRESS_VAR 90.f
+#define AP_UWB_BARO_NOISE 10.f
 
 
 AP_UWB_FLNC_UWB_2::AP_UWB_FLNC_UWB_2(AP_UWB::UWB_State &_state, AP_HAL::UARTDriver *_port, AP_UWB_Params &_params)
@@ -49,6 +53,9 @@ AP_UWB_FLNC_UWB_2::AP_UWB_FLNC_UWB_2(AP_UWB::UWB_State &_state, AP_HAL::UARTDriv
         AP_HAL::panic("Florinco UWB Failed to start UWB update thread");
     }
 
+    // Initialize ground pressure KF
+    state.last_baro_data.filtered_ground_pressure.variance = 100000.f;
+    state.last_baro_data.filtered_ground_pressure.pressure = 101300.f;
 }
 
 AP_UWB_FLNC_UWB_2::~AP_UWB_FLNC_UWB_2()
@@ -181,29 +188,94 @@ bool AP_UWB_FLNC_UWB_2::handle_serial()
     return false;
 }
 
+void AP_UWB_FLNC_UWB_2::filterGroundPressure()
+{
+    // Little Kalman filter
+    float stateVariance = state.last_baro_data.filtered_ground_pressure.variance + AP_UWB_BARO_NOISE;
+    float measurementVariance = state.last_baro_data.ground_station.variance;
+
+    float gain = stateVariance / (stateVariance + measurementVariance);
+
+    state.last_baro_data.filtered_ground_pressure.pressure +=
+        gain * (state.last_baro_data.ground_station.pressure - state.last_baro_data.filtered_ground_pressure.pressure);
+    state.last_baro_data.filtered_ground_pressure.variance *= (1 - gain);
+}
+
+void AP_UWB_FLNC_UWB_2::logState()
+{
+    const uint64_t time_us = AP_HAL::micros64();
+
+    const struct log_UWB pkt {
+        LOG_PACKET_HEADER_INIT(LOG_UWB_MSG),
+        time_us                 : time_us,
+        last_gnd_press          : state.last_baro_data.ground_station.pressure,
+        last_gnd_press_var      : state.last_baro_data.ground_station.variance,
+        gnd_press_filtered      : state.last_baro_data.filtered_ground_pressure.pressure,
+        gnd_press_var           : state.last_baro_data.filtered_ground_pressure.variance,
+        tag_press               : state.last_baro_data.tag.pressure,
+        tag_press_var           : state.last_baro_data.tag.variance
+    };
+    AP::logger().WriteBlock(&pkt, sizeof(pkt));
+}
+
+void AP_UWB_FLNC_UWB_2::applyGroundPressureCorrection()
+{
+    // We have some parameters which we can use.
+    // BARO1_GND_PRESS -> Set to the current pressure when armed; get this by AP_Baro::get_ground_pressure()
+    // BARO_ALT_OFFSET -> We set this here to correct the baro drift. This parameter is set to zero when arming.
+    // This param can be set with AP_Baro::set_baro_drift_altitude()
+    AP_Baro* baro = AP_Baro::get_singleton();
+    float startPressure = baro->get_ground_pressure();
+    float altOffset = baro->get_altitude_difference(state.last_baro_data.filtered_ground_pressure.pressure, startPressure);
+    baro->set_baro_drift_altitude(altOffset);
+}
+
 void AP_UWB_FLNC_UWB_2::handle_packet()
 {
     switch (linebuf[1])
     {
         case UWB_FLNC_GROUND_PRESSURE:
         {
+            static uint32_t lastTimeCorrectionApplied = 0;
+
             state.last_baro_data.ground_station.id        = bufferToHWord(linebuf+3);
-            state.last_baro_data.ground_station.pressure  = bufferToFloat(linebuf+5);
-            state.last_baro_data.ground_station.sigma     = bufferToFloat(linebuf+9);
+            state.last_baro_data.ground_station.pressure  = bufferToFloat(linebuf+5) * 1000; // We directly convert here to Pascal;
+            float variance                                = bufferToFloat(linebuf+9);
+
+            state.last_baro_data.ground_station.variance  = variance > 0.f ? variance : AP_UWB_DEFAULT_PRESS_VAR;
+
+            filterGroundPressure();
+
+            // Apply the ground pressure correction once a second.
+            uint32_t now = AP_HAL::millis();
+            if ((now - lastTimeCorrectionApplied) > 1000)
+            {
+                applyGroundPressureCorrection();
+                lastTimeCorrectionApplied = now;
+            }
+
             break;
         }
-        case UWB_FLNC_RAW_BARO_MEASUREMENT:
+        case UWB_FLNC_PRESSURE: // TODO -> Separate pressure packet with sigma
         {
-            state.last_baro_data.tag.pressure = bufferToFloat(linebuf+3);
-            state.last_baro_data.tag.sigma    = bufferToFloat(linebuf+7);
-            AP_Baro::get_singleton()->set_data(state.last_baro_data.tag.pressure, state.last_baro_data.tag.sigma);
+            state.last_baro_data.tag.pressure = bufferToFloat(linebuf+3) * 1000; // We directly convert here to Pascal
+            state.last_baro_data.tag.variance = AP_UWB_DEFAULT_PRESS_VAR;  //bufferToFloat(linebuf+7); // <- Contains a calculated ground pressure, but this is not relevant for a tag?...
+            AP_Baro::get_singleton()->set_data(state.last_baro_data.tag.pressure, state.last_baro_data.tag.variance);
             // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB BARO: %f|%f", state.last_baro_data.tag.pressure, state.last_baro_data.tag.sigma);
             break;
         }
+        // case UWB_FLNC_RAW_BARO_MEASUREMENT:
+        // {
+        //     state.last_baro_data.tag.pressure = bufferToFloat(linebuf+3);
+        //     state.last_baro_data.tag.sigma    = bufferToFloat(linebuf+7);
+        //     AP_Baro::get_singleton()->set_data(state.last_baro_data.tag.pressure, state.last_baro_data.tag.sigma);
+        //     // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB BARO: %f|%f", state.last_baro_data.tag.pressure, state.last_baro_data.tag.sigma);
+        //     break;
+        // }
         default:
             break;
     }
-    return;
+    logState();
 }
 
 bool AP_UWB_FLNC_UWB_2::checkCRC()

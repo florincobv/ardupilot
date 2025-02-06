@@ -77,7 +77,7 @@ public:
     {
         uint16_t id;
         float pressure;
-        float sigma;
+        float variance;
     } BaroData;
 
     // The UWB_State structure is filled in by the backend driver
@@ -89,7 +89,7 @@ public:
         {
             AnchorData anchor;
             float   distance;
-            float   sigma;
+            float   variance;
         } last_twr_data;
 
         struct
@@ -97,13 +97,14 @@ public:
             AnchorData anchor1;
             AnchorData anchor2;
             float   distance_diff;
-            float   sigma;
+            float   variance;
         } last_tdoa_data;
 
         struct
         {
             BaroData ground_station;
             BaroData tag;
+            BaroData filtered_ground_pressure;
         } last_baro_data;
 
         uint64_t range_valid_count;
