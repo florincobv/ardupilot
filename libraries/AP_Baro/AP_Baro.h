@@ -65,7 +65,7 @@ public:
 #endif
 
 #if AP_UWB_ENABLED
-    void set_data(float pressure, float sigma);
+    void set_data(float pressure, float variance);
 #endif
 
     // check if all baros are healthy - used for SYS_STATUS report

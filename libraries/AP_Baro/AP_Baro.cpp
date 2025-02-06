@@ -274,14 +274,14 @@ AP_Baro::AP_Baro()
     _field_elevation_active = _field_elevation;
 }
 #if AP_UWB_ENABLED
-void AP_Baro::set_data(float pressure, float sigma)
+void AP_Baro::set_data(float pressure, float variance)
 {
     uint8_t i;
     for (i=0; i<num_instances(); i++) 
     {
         if (drivers[i] != nullptr) 
         {
-            drivers[i]->set_data(pressure, sigma);
+            drivers[i]->set_data(pressure, variance);
         }
     }
 }

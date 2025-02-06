@@ -33,7 +33,7 @@ public:
 #endif
 
 #if AP_UWB_ENABLED
-    virtual void set_data(float pressure, float sigma) { return ; }
+    virtual void set_data(float pressure, float variance) { return ; }
 #endif
 
 
