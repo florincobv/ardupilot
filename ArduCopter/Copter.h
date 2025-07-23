@@ -759,6 +759,9 @@ private:
     void parachute_check();
     void parachute_release();
     void parachute_manual_release();
+    void attitude_check();
+    void spin_check();
+    void acceleration_deceleration_check();
 
     // ekf_check.cpp
     void ekf_check();

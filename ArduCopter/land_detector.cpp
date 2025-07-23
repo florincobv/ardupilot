@@ -29,6 +29,9 @@ void Copter::update_land_and_crash_detectors()
 
     crash_check();
     thrust_loss_check();
+    attitude_check();
+    spin_check();
+    acceleration_deceleration_check(); 
     yaw_imbalance_check();
 }
 

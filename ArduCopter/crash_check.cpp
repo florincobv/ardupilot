@@ -12,6 +12,15 @@
 #define THRUST_LOSS_CHECK_ANGLE_DEVIATION_CD  1500  // we can't expect to maintain altitude beyond 15 degrees on all aircraft
 #define THRUST_LOSS_CHECK_MINIMUM_THROTTLE    0.9f  // we can expect to maintain altitude above 90 % throttle
 
+// Code to detect a fatal attitude deviation
+#define ATTITUDE_CHECK_ANGLE_MAX              95.0f // we should never flip over in automatic modes
+
+// Code to detect a too rapid spin
+#define SPIN_CHECK_YAW_MAX_RAD                3 // we should never spin this fast
+
+// Code to detect a too rapid spin
+#define ACCELERATION_CHECK_IMU_MAX            6 // we should never ascend or descend faster than this
+
 // Yaw imbalance check
 #define YAW_IMBALANCE_IMAX_THRESHOLD 0.75f
 #define YAW_IMBALANCE_WARN_MS 10000
@@ -165,9 +174,9 @@ void Copter::thrust_loss_check()
         thrust_loss_counter = 0;
         LOGGER_WRITE_ERROR(LogErrorSubsystem::THRUST_LOSS_CHECK, LogErrorCode::FAILSAFE_OCCURRED);
         // send message to gcs
-        gcs().send_text(MAV_SEVERITY_EMERGENCY, "Potential Thrust Loss (%d)", (int)motors->get_lost_motor() + 1);
+        gcs().send_text(MAV_SEVERITY_EMERGENCY, "Potential Thrust Loss (%d), disarm", (int)motors->get_lost_motor() + 1);
         // enable thrust loss handling
-        motors->set_thrust_boost(true);
+        copter.arming.disarm(AP_Arming::Method::CRASH);
         // the motors library disables this when it is no longer needed to achieve the commanded output
 
 #if AP_GRIPPER_ENABLED
@@ -370,3 +379,113 @@ void Copter::parachute_manual_release()
 }
 
 #endif  // HAL_PARACHUTE_ENABLED
+
+// attitude_check - disarms motors if the drone has an attitude that doesn't match the flying mode
+void Copter::attitude_check()
+{
+    // return immediately if disarmed, or crash checking disabled
+    if (!motors->armed() || ap.land_complete || g.fs_crash_check == 0) {
+        return;
+    }
+ 
+    // exit immediately if in standby
+    if (standby_active) {
+        return;
+    }
+ 
+	// check if we are in a mode where this check makes sense
+    if (flightmode->mode_number() != Mode::Number::AUTO &&
+        flightmode->mode_number() != Mode::Number::GUIDED &&
+        flightmode->mode_number() != Mode::Number::LOITER &&
+        flightmode->mode_number() != Mode::Number::RTL &&
+        flightmode->mode_number() != Mode::Number::CIRCLE &&
+        flightmode->mode_number() != Mode::Number::LAND &&
+        flightmode->mode_number() != Mode::Number::GUIDED_NOGPS &&
+        flightmode->mode_number() != Mode::Number::SMART_RTL)
+    {
+        return;
+    }
+ 
+    // check for lean angle over the limit degrees
+    const float lean_angle_deg = degrees(acosf(ahrs.cos_roll()*ahrs.cos_pitch()));
+    if (lean_angle_deg > ATTITUDE_CHECK_ANGLE_MAX) {
+        // send message to gcs
+        gcs().send_text(MAV_SEVERITY_EMERGENCY,"Attitude Inversion: Disarming: AngLean=%.0f>%.0f", lean_angle_deg, ATTITUDE_CHECK_ANGLE_MAX);
+        // disarm motors
+        copter.arming.disarm(AP_Arming::Method::CRASH);
+    }
+}
+
+// spin_check - checks if the drone is spinning too rapidly (for example due to a colision with something)
+void Copter::spin_check()
+{
+    // return immediately if disarmed, or crash checking disabled
+    if (!motors->armed() || ap.land_complete || g.fs_crash_check == 0) {
+        return;
+    }
+ 
+    // exit immediately if in standby
+    if (standby_active) {
+        return;
+    }
+ 
+	// check if we are in a mode where this check makes sense
+    if (flightmode->mode_number() != Mode::Number::AUTO &&
+        flightmode->mode_number() != Mode::Number::GUIDED &&
+        flightmode->mode_number() != Mode::Number::LOITER &&
+        flightmode->mode_number() != Mode::Number::RTL &&
+        flightmode->mode_number() != Mode::Number::CIRCLE &&
+        flightmode->mode_number() != Mode::Number::LAND &&
+        flightmode->mode_number() != Mode::Number::GUIDED_NOGPS &&
+        flightmode->mode_number() != Mode::Number::SMART_RTL)
+    {
+        return;
+    }
+ 
+    float yaw_rate = abs(ahrs.get_gyro().z);
+ 
+    if (yaw_rate > SPIN_CHECK_YAW_MAX_RAD){ 
+ 
+        // send message to gcs
+        gcs().send_text(MAV_SEVERITY_EMERGENCY,"Spinning (yawing): YawRate=%.0f>%.0d", yaw_rate, SPIN_CHECK_YAW_MAX_RAD);
+        // disarm motors
+        //copter.arming.disarm(AP_Arming::Method::CRASH);
+    }
+}
+
+// acceleration_deceleration_check - checks if the drone is acellerating or decelerating too rapidly (for example due to a colision with something)
+void Copter::acceleration_deceleration_check()
+{
+    // return immediately if disarmed, or crash checking disabled
+    if (!motors->armed() || ap.land_complete || g.fs_crash_check == 0) {
+        return;
+    }
+ 
+    // exit immediately if in standby
+    if (standby_active) {
+        return;
+    }
+ 
+	// check if we are in a mode where this check makes sense
+    if (flightmode->mode_number() != Mode::Number::AUTO &&
+        flightmode->mode_number() != Mode::Number::GUIDED &&
+        flightmode->mode_number() != Mode::Number::LOITER &&
+        flightmode->mode_number() != Mode::Number::RTL &&
+        flightmode->mode_number() != Mode::Number::CIRCLE &&
+        flightmode->mode_number() != Mode::Number::LAND &&
+        flightmode->mode_number() != Mode::Number::GUIDED_NOGPS &&
+        flightmode->mode_number() != Mode::Number::SMART_RTL)
+    {
+        return;
+    }
+ 
+    const float accel_x_due_to_gravity = GRAVITY_MSS * ahrs.sin_pitch();
+    const float accel_x = ahrs.get_accel().x - accel_x_due_to_gravity;
+ 
+    if ((accel_x) > ACCELERATION_CHECK_IMU_MAX) {
+        // send message to gcs
+        gcs().send_text(MAV_SEVERITY_EMERGENCY,"Fatal acceleration/deceleration: Disarming: Acc=%.0f>%.0d", accel_x, ACCELERATION_CHECK_IMU_MAX);
+        // disarm motors
+        copter.arming.disarm(AP_Arming::Method::CRASH);
+    }
+}
