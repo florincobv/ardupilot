@@ -128,8 +128,8 @@ void Copter::init_ardupilot()
     landinggear.init();
 #endif
 
-#ifdef AP_UWB_ENABLED
-    uwb.init(serial_manager);
+#if AP_UWB_ENABLED
+    g2.uwb.init();
 #endif
 
 #ifdef USERHOOK_INIT

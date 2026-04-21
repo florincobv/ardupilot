@@ -8,7 +8,7 @@
 #include <Filter/DerivativeFilter.h>
 #include <AP_MSP/msp.h>
 #include <AP_ExternalAHRS/AP_ExternalAHRS.h>
-#include <AP_UWB/AP_UWB_config.h>
+#include <AP_UWB/AP_UWB_FLNC.h>
 
 // maximum number of sensor instances
 #ifndef BARO_MAX_INSTANCES
@@ -30,6 +30,7 @@ class AP_Baro
     friend class AP_Baro_Backend;
     friend class AP_Baro_SITL; // for access to sensors[]
     friend class AP_Baro_DroneCAN; // for access to sensors[]
+    friend class AP_Baro_FLNCUWB; // for access to sensors[]
 
 public:
     AP_Baro();
@@ -59,10 +60,6 @@ public:
     bool healthy(void) const { return healthy(_primary); }
 
     bool healthy(uint8_t instance) const;
-
-#if AP_UWB_ENABLED
-    void set_data(float pressure, float variance);
-#endif
 
     // check if all baros are healthy - used for SYS_STATUS report
     bool all_healthy(void) const;
@@ -222,6 +219,10 @@ public:
 #endif
 #if AP_BARO_EXTERNALAHRS_ENABLED
     void handle_external(const AP_ExternalAHRS::baro_data_message_t &pkt);
+#endif
+#if AP_BARO_FLNCUWB_ENABLED
+    void handle_uwb_flnc(const AP_UWB_FLNC::pressure_data_message_t &pkt);
+    void handle_uwb_flnc(const AP_UWB_FLNC::ground_pressure_data_message_t &pkt);
 #endif
 
     enum Options : uint16_t {

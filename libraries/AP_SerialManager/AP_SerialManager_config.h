@@ -149,8 +149,8 @@
 
 // UWB_FLNC protocol
 #define AP_UWB_BAUD           115200
-#define AP_UWB_BUFSIZE_RX     256
-#define AP_UWB_BUFSIZE_TX     64
+#define AP_UWB_FLNC_BUFSIZE_RX     256
+#define AP_UWB_FLNC_BUFSIZE_TX     64
 
 #ifndef HAL_HAVE_SERIAL0
 #define HAL_HAVE_SERIAL0 HAL_NUM_SERIAL_PORTS > 0

@@ -12,6 +12,9 @@
 #if WEATHERVANE_ENABLED
  #include <AC_AttitudeControl/AC_WeatherVane.h>
 #endif
+#if AP_UWB_ENABLED
+ #include <AP_UWB/AP_UWB.h>
+#endif
 
 // Global parameter class.
 //
@@ -678,6 +681,10 @@ public:
 
 #if WEATHERVANE_ENABLED
     AC_WeatherVane weathervane;
+#endif
+
+#if AP_UWB_ENABLED
+    AP_UWB uwb;
 #endif
 
     // payload place parameters

@@ -50,7 +50,7 @@
 #include "AP_Baro_ICP101XX.h"
 #include "AP_Baro_ICP201XX.h"
 
-#include "AP_Baro_FlorincoUWB.h"
+#include "AP_Baro_FLNCUWB.h"
 
 #include <AP_Airspeed/AP_Airspeed.h>
 #include <AP_AHRS/AP_AHRS.h>
@@ -272,19 +272,6 @@ AP_Baro::AP_Baro()
     AP_Param::setup_object_defaults(this, var_info);
     _field_elevation_active = _field_elevation;
 }
-#if AP_UWB_ENABLED
-void AP_Baro::set_data(float pressure, float variance)
-{
-    uint8_t i;
-    for (i=0; i<num_instances(); i++) 
-    {
-        if (drivers[i] != nullptr) 
-        {
-            drivers[i]->set_data(pressure, variance);
-        }
-    }
-}
-#endif
 
 // calibrate the barometer. This must be called at least once before
 // the altitude() or climb_rate() interfaces can be used
@@ -574,6 +561,10 @@ void AP_Baro::init(void)
     if (serial_port >= 0) {
         ADD_BACKEND(NEW_NOTHROW AP_Baro_ExternalAHRS(*this, serial_port));
     }
+#endif
+
+#if AP_BARO_FLNCUWB_ENABLED
+    ADD_BACKEND(NEW_NOTHROW AP_Baro_FLNCUWB(*this));
 #endif
 
 // macro for use by HAL_INS_PROBE_LIST
@@ -1066,6 +1057,27 @@ void AP_Baro::handle_external(const AP_ExternalAHRS::baro_data_message_t &pkt)
     }
 }
 #endif  // AP_BARO_EXTERNALAHRS_ENABLED
+
+#if AP_BARO_FLNCUWB_ENABLED
+/*
+  handle UWB FLNC barometer data
+ */
+void AP_Baro::handle_uwb_flnc(const AP_UWB_FLNC::pressure_data_message_t &pkt)
+{
+    for (uint8_t i=0; i<_num_drivers; i++) {
+        drivers[i]->handle_uwb_flnc(pkt);
+    }
+}
+/*
+  handle UWB FLNC ground pressure data
+ */
+void AP_Baro::handle_uwb_flnc(const AP_UWB_FLNC::ground_pressure_data_message_t &pkt)
+{
+    for (uint8_t i=0; i<_num_drivers; i++) {
+        drivers[i]->handle_uwb_flnc(pkt);
+    }
+}
+#endif  // AP_BARO_FLNCUWB_ENABLED
 
 // returns false if we fail arming checks, in which case the buffer will be populated with a failure message
 bool AP_Baro::arming_checks(size_t buflen, char *buffer) const

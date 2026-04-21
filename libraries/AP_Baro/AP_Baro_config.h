@@ -3,6 +3,7 @@
 #include <AP_HAL/AP_HAL_Boards.h>
 #include <AP_MSP/msp.h>
 #include <AP_ExternalAHRS/AP_ExternalAHRS.h>
+#include <AP_UWB/AP_UWB_config.h>
 
 #ifndef HAL_BARO_WIND_COMP_ENABLED
 #define HAL_BARO_WIND_COMP_ENABLED 1
@@ -50,7 +51,7 @@
 #endif
 
 #ifndef AP_BARO_FLNCUWB_ENABLED
-#define AP_BARO_FLNCUWB_ENABLED AP_BARO_BACKEND_DEFAULT_ENABLED
+#define AP_BARO_FLNCUWB_ENABLED (AP_UWB_FLNC_ENABLED && AP_BARO_BACKEND_DEFAULT_ENABLED)
 #endif
 
 #ifndef AP_BARO_ICM20789_ENABLED

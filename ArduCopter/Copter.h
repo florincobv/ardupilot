@@ -168,7 +168,8 @@
 #include "avoidance_adsb.h"
 #endif
 
-#ifdef AP_UWB_ENABLED
+#include <AP_UWB/AP_UWB_config.h>
+#if AP_UWB_ENABLED
 #include <AP_UWB/AP_UWB.h>
 #endif
 
@@ -318,11 +319,6 @@ private:
     // external control library
 #if AP_EXTERNAL_CONTROL_ENABLED
     AP_ExternalControl_Copter external_control;
-#endif
-
-    // UWB Sensor
-#ifdef AP_UWB_ENABLED
-    AP_UWB uwb;
 #endif
 
     // system time in milliseconds of last recorded yaw reset from ekf

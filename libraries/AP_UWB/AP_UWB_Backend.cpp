@@ -13,63 +13,33 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <AP_Common/AP_Common.h>
-#include <AP_HAL/AP_HAL.h>
 #include "AP_UWB.h"
+
+#if AP_UWB_ENABLED
 #include "AP_UWB_Backend.h"
-#include <GCS_MAVLink/GCS.h>
+
+#include <AP_AHRS/AP_AHRS.h>
+#include <AP_Logger/AP_Logger.h>
 
 extern const AP_HAL::HAL& hal;
 
-/*
-  base class constructor. 
-  This incorporates initialisation as well.
-*/
-AP_UWB_Backend::AP_UWB_Backend(AP_UWB::UWB_State &_state, AP_UWB_Params &_params) :
-        state(_state),
-        params(_params)
+AP_UWB_Backend::AP_UWB_Backend(AP_UWB &front,
+                               AP_UWB::UWB_State &state,
+                               AP_UWB_Params &params):
+    _front(front),
+    _state(state),
+    _params(params)
 {
-    _backend_type = type();
 }
 
-AP_UWB::Status AP_UWB_Backend::status() const {
-    if (type() == AP_UWB::Type::NONE) {
-        // turned off at runtime?
-        return AP_UWB::Status::NotConnected;
-    }
-    return state.status;
-}
-
-// true if sensor is returning data
-bool AP_UWB_Backend::has_data() const {
-    return ((state.status != AP_UWB::Status::NotConnected) &&
-            (state.status != AP_UWB::Status::NoData));
-}
-
-// update status based on distance measurement
-void AP_UWB_Backend::update_status()
+// returns true if a UWB has been recently updated
+bool AP_UWB_Backend::healthy(void) const
 {
-    // TODO sanity check?
-    set_status(AP_UWB::Status::Good);
-}
-
-// set status and update valid count
-void AP_UWB_Backend::set_status(AP_UWB::Status _status)
-{
-    state.status = _status;
-
-    // update valid count
-    if (_status == AP_UWB::Status::Good) {
-        if (state.range_valid_count < 10) {
-            state.range_valid_count++;
-        }
-    } else {
-        state.range_valid_count = 0;
-    }
-}
-
-bool AP_UWB_Backend::update()
-{
-    // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB BE UPDATE");
     return false;
 }
+
+void AP_UWB_Backend::Log_Write_UWB() const
+{
+}
+
+#endif // AP_UWB_ENABLED

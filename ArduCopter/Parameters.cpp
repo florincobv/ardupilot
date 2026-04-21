@@ -1161,6 +1161,11 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // ID 62 is reserved for the SHOW_... parameters from the Skybrush fork at
     // https://github.com/skybrush-io/ardupilot
 
+#if AP_UWB_ENABLED
+    // @Group: UWB
+    // @Path: ../libraries/AP_UWB/AP_UWB.cpp
+    AP_SUBGROUPINFO(uwb, "UWB", 63, ParametersG2, AP_UWB),
+#endif
     AP_GROUPEND
 };
 
@@ -1292,6 +1297,9 @@ ParametersG2::ParametersG2(void)
 
 #if WEATHERVANE_ENABLED
     ,weathervane()
+#endif
+#if AP_UWB_ENABLED
+    ,uwb()
 #endif
 {
     AP_Param::setup_object_defaults(this, var_info);

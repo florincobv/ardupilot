@@ -14,9 +14,11 @@
  */
 
 #include "AP_UWB.h"
+
+#if AP_UWB_ENABLED
+
 #include "AP_UWB_Backend.h"
-#include "AP_UWB_Backend_Serial.h"
-#include "AP_UWB_FLNC_UWB_2.h"
+#include "AP_UWB_FLNC.h"
 
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_Logger/AP_Logger.h>
@@ -26,11 +28,37 @@
 #include <AP_InternalError/AP_InternalError.h>
 #include <GCS_MAVLink/GCS.h>
 
-extern const AP_HAL::HAL &hal;
+extern const AP_HAL::HAL& hal;
+
+const AP_Param::GroupInfo AP_UWB::var_info[] = {
+
+    // SKIP INDEX 0
+
+    // @Param: _LOG
+    // @DisplayName: Logging
+    // @Description: Enables UWB sensor logging
+    // @Values: 0:Disabled, 1:Enabled
+    // @User: Standard
+    AP_GROUPINFO("_LOG", 1, AP_UWB, _log_flag, 0),
+
+    // SKIP Index 2-9 to be for parameters that apply to every sensor
+
+    // @Group: 1_
+    // @Path: AP_UWB_Params.cpp
+    AP_SUBGROUPINFO(_params[0], "1_", 10, AP_UWB, AP_UWB_Params),
+
+    // @Group: 1_
+    // @Path: AP_UWB_FLNC.cpp
+    AP_SUBGROUPVARPTR(_drivers[0], "1_", 19, AP_UWB, backend_var_info[0]),
+
+    AP_GROUPEND
+};
+
+const AP_Param::GroupInfo *AP_UWB::backend_var_info[AP_UWB_MAX_INSTANCES];
 
 AP_UWB::AP_UWB()
 {
-    // AP_Param::setup_object_defaults(this, params);
+    AP_Param::setup_object_defaults(this, var_info);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     if (_singleton != nullptr) {
@@ -40,187 +68,94 @@ AP_UWB::AP_UWB()
     _singleton = this;
 }
 
-/*
-  initialise the UWB class. We do detection of attached range
-  finders here. For now we won't allow for hot-plugging of
-  UWBs.
- */
-void AP_UWB::init(const AP_SerialManager& serial_manager)
+// init - instantiate the UWBs
+void AP_UWB::init()
 {
-    if (num_instances != 0) {
-        // don't re-init if we've found some sensors already
+    GCS_SEND_INFO("UWB init");
+    // check init has not been called before
+    if (_num_instances != 0) {
         return;
     }
 
-    // search for serial ports with FLNC UWB
-    uint8_t uart_idx = 0;
-    for (uint8_t i=0, serial_instance = 0; i<UWB_MAX_INSTANCES; i++) {
-        _port[i] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_FLNC_UWB, uart_idx);
-        state[i].type = Type::FLNC_UWB_2; // TODO State heeft geen type en hoort die ook niet te hebben geloof ik
-        uart_idx++;
+    // create each instance
+    uint8_t serial_instance = 0;  // Track serial port allocation
+    for (uint8_t instance = 0; instance < AP_UWB_MAX_INSTANCES; instance++) {
+        _state[instance].instance = instance;
 
-        state[i].instance = i;
-
-        // serial_instance will be increased inside detect_instance
-        // if a serial driver is loaded for this instance
-        WITH_SEMAPHORE(detect_sem);
-        detect_instance(i, serial_instance);
-        if (drivers[i] != nullptr) {
-            // we loaded a driver for this instance, so it must be
-            // present (although it may not be healthy). We use MAX()
-            // here as a UAVCAN UWB may already have been
-            // found
-            num_instances = MAX(num_instances, i+1);
-        }
-
-        // initialise status
-        state[i].status = Status::NotConnected;
-        state[i].range_valid_count = 0;
-        // initialize signal_quality_pct for drivers that don't handle it.
-        state[i].signal_quality_pct = SIGNAL_QUALITY_UNKNOWN;
-    }
-    // AP::logger().Write_Message("UWB Init Done");
-    gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB INIT DONE(%i)", num_instances);
-}
-
-/*
-  update UWB state for all instances. This should be called at
-  around 140Hz by main loop
- */
-void AP_UWB::update(void)
-{    
-    // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB Top level Update");
-    for (uint8_t i=0; i<num_instances; i++) {
-        // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB Top level Update(%i)", i);
-        if (drivers[i] != nullptr) {
-            if (state[i].type == Type::NONE) {
-                // allow user to disable a UWB at runtime
-                state[i].status = Status::NotConnected;
-                state[i].range_valid_count = 0;
-                continue;
-            }
-            // gcs().send_text(MAV_SEVERITY_CRITICAL, "UWB Top level Update(Driver)");
-            drivers[i]->update();
-        }
-    }
-#if HAL_LOGGING_ENABLED
-    // Log_RFND();
+        switch (get_driver_type(instance)) {
+#if AP_UWB_FLNC_ENABLED
+        case AP_UWB_Params::Type::FLNC:
+            _drivers[instance] = new AP_UWB_FLNC(*this, _state[instance], _params[instance]);
+            break;
 #endif
-}
+        case AP_UWB_Params::Type::NONE:
+        default:
+            break;
+        }
 
-bool AP_UWB::_add_backend(AP_UWB_Backend *backend, uint8_t instance, uint8_t serial_instance)
-{
-    if (!backend) {
-        return false;
-    }
-    if (instance >= UWB_MAX_INSTANCES) {
-        AP_HAL::panic("Too many UWB backends");
-    }
-    if (drivers[instance] != nullptr) {
-        // we've allocated the same instance twice
-        INTERNAL_ERROR(AP_InternalError::error_t::flow_of_control);
-    }
-    
-    backend->init_serial(serial_instance);
-    drivers[instance] = backend;
-    num_instances = MAX(num_instances, instance+1);
-
-    return true;
-}
-
-/*
-  detect if an instance of a UWB is connected. 
- */
-void AP_UWB::detect_instance(uint8_t instance, uint8_t& serial_instance)
-{
-    // AP_UWB_Backend* (*serial_create_fn)(AP_UWB::UWB_State&, AP_UWB_Params&) = nullptr;
-
-    const Type _type = (Type)state[instance].type;
-    switch (_type) {
-    case Type::FLNC_UWB_2:
-        _add_backend(new AP_UWB_FLNC_UWB_2(state[instance], _port[instance], params[instance]), instance);
-        break;
-
-    case Type::SIM:
-        break;
-    case Type::NONE:
-        break;
+        // call init function for each backend
+        if (_drivers[instance] != nullptr) {
+            if (_state[instance].var_info != nullptr) {
+                // Load backend specific params
+                backend_var_info[instance] = _state[instance].var_info;
+                AP_Param::load_object_from_eeprom(_drivers[instance], backend_var_info[instance]);
+            }
+            if (_drivers[instance]->needs_serial()) {
+                _drivers[instance]->init_serial(serial_instance);
+                serial_instance++;
+            } else {
+                _drivers[instance]->init();
+            }
+            // _num_instances is actually the index for looping over instances
+            // the user may have UWB_TYPE=0 and UWB2_TYPE=1, in which case
+            // there will be a gap, but as we always check for _drivers[instances] being nullptr
+            // this is safe
+            _num_instances = instance + 1;
+        }
     }
 
-    // if (serial_create_fn != nullptr) {
-    //     if (AP::serialmanager().have_serial(AP_SerialManager::SerialProtocol_FLNC_UWB, serial_instance)) {
-    //         auto *b = serial_create_fn(state[instance], params[instance]);
-    //         if (b != nullptr) {
-    //             _add_backend(b, instance, serial_instance++);
-    //         }
-    //     }
-    // }
-
-    // if the backend has some local parameters then make those available in the tree
-    if (drivers[instance] && state[instance].params) {
-        // AP_Param::load_object_from_eeprom(drivers[instance], state[instance].params->var_info);
-
+    if (_num_instances > 0) {
         // param count could have changed
         AP_Param::invalidate_count();
     }
-
 }
 
-AP_UWB_Backend* AP_UWB::get_backend(uint8_t id) const {
-    if (id >= num_instances) {
-        return nullptr;
-    }
-    if (drivers[id] != nullptr) {
-        if (drivers[id]->type() == Type::NONE) {
-            // pretend it isn't here; disabled at runtime?
-            return nullptr;
+void AP_UWB::update(void)
+{
+    for (uint8_t i=0; i<_num_instances; i++) {
+        if (_drivers[i] != nullptr && get_driver_type(i) != AP_UWB_Params::Type::NONE) {
+            _drivers[i]->update();
+#if HAL_LOGGING_ENABLED
+            const AP_Logger *logger = AP_Logger::get_singleton();
+            if (logger != nullptr && _log_flag) {
+                _drivers[i]->Log_Write_UWB();
+            }
+#endif
         }
     }
-    return drivers[id];
-};
-
-
-float AP_UWB::distance_orient(enum Rotation orientation) const
-{
-    AP_UWB_Backend *backend = find_instance(orientation);
-    if (backend == nullptr) {
-        return 0;
-    }
-    return backend->distance();
 }
 
-uint32_t AP_UWB::last_reading_ms(enum Rotation orientation) const
+bool AP_UWB::healthy(const uint8_t instance) const
 {
-    AP_UWB_Backend *backend = find_instance(orientation);
-    if (backend == nullptr) {
-        return 0;
-    }
-    return backend->last_reading_ms();
+    return instance < _num_instances && _drivers[instance] != nullptr && _drivers[instance]->healthy();
 }
 
-// get temperature reading in C.  returns true on success and populates temp argument
-bool AP_UWB::get_temp(enum Rotation orientation, float &temp) const
+AP_UWB_Params::Type AP_UWB::get_driver_type(const uint8_t instance) const
 {
-    AP_UWB_Backend *backend = find_instance(orientation);
-    if (backend == nullptr) {
-        return false;
+    if (instance >= AP_UWB_MAX_INSTANCES) {
+        return AP_UWB_Params::Type::NONE;
     }
-    return backend->get_temp(temp);
-}
-
-AP_UWB_Backend* AP_UWB::find_instance(enum Rotation orientation) const
-{
-    return nullptr;
+    return (AP_UWB_Params::Type)_params[instance].type.get();
 }
 
 AP_UWB* AP_UWB::_singleton;
 
-namespace AP {
-
-AP_UWB &uwb()
+namespace AP
 {
-    return *AP_UWB::get_singleton();
+AP_UWB *uwb()
+{
+    return AP_UWB::get_singleton();
 }
+};
 
-}
-
+#endif // AP_UWB_ENABLED

@@ -27,8 +27,9 @@ public:
     virtual void handle_external(const AP_ExternalAHRS::baro_data_message_t &pkt) {}
 #endif
 
-#if AP_UWB_ENABLED
-    virtual void set_data(float pressure, float variance) { return ; }
+#if AP_BARO_FLNCUWB_ENABLED
+    virtual void handle_uwb_flnc(const AP_UWB_FLNC::pressure_data_message_t &pkt) {};
+    virtual void handle_uwb_flnc(const AP_UWB_FLNC::ground_pressure_data_message_t &pkt) {};
 #endif
 
 

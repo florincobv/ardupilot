@@ -1370,6 +1370,22 @@ GCS &gcs();
 // send text when we do have a GCS
 #if !defined(HAL_BUILD_AP_PERIPH)
 #define GCS_SEND_TEXT(severity, format, args...) gcs().send_text(severity, format, ##args)
+#define GCS_SEND_INFO(format, args...) gcs().send_text(MAV_SEVERITY_INFO, format, ##args)
+#define GCS_SEND_WARNING(format, args...) gcs().send_text(MAV_SEVERITY_WARNING, format, ##args)
+#define GCS_SEND_ERROR(format, args...) gcs().send_text(MAV_SEVERITY_ERROR, format, ##args)
+#define GCS_SEND_CRITICAL(format, args...) gcs().send_text(MAV_SEVERITY_CRITICAL, format, ##args)
+#define GCS_SEND_TEXT_THROTTLE(wait_ms, severity, format, args...) { \
+    static uint32_t __last_text_ms = 0; \
+    uint32_t __now = AP_HAL::millis(); \
+    if (__now - __last_text_ms > wait_ms) { \
+        __last_text_ms = __now; \
+        gcs().send_text(severity, format, ##args); \
+    } \
+}
+#define GCS_SEND_INFO_THROTTLE(wait_ms, format, args...) GCS_SEND_TEXT_THROTTLE(wait_ms, MAV_SEVERITY_INFO, format, ##args)
+#define GCS_SEND_WARNING_THROTTLE(wait_ms, format, args...) GCS_SEND_TEXT_THROTTLE(wait_ms, MAV_SEVERITY_WARNING, format, ##args)
+#define GCS_SEND_ERROR_THROTTLE(wait_ms, format, args...) GCS_SEND_TEXT_THROTTLE(wait_ms, MAV_SEVERITY_ERROR, format, ##args)
+#define GCS_SEND_CRITICAL_THROTTLE(wait_ms, format, args...) GCS_SEND_TEXT_THROTTLE(wait_ms, MAV_SEVERITY_CRITICAL, format, ##args)
 #define AP_HAVE_GCS_SEND_TEXT 1
 #else
 extern "C" {

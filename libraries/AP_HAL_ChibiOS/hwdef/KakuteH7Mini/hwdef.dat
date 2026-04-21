@@ -163,3 +163,6 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 define DEFAULT_NTF_LED_TYPES 257
 
 define AP_SCRIPTING_ENABLED 0
+
+undef BARO
+define AP_UWB_ENABLED 1
