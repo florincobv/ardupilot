@@ -95,13 +95,18 @@ private:
         CRC8,  // CRC is already a global macro
     };
 
-    AP_HAL::UARTDriver *uart;
+    AP_HAL::UARTDriver *uart = nullptr;
+    uint32_t _baudrate = 0;
 
     PacketState _packet_state;
     Packet _current_packet;
     uint32_t _packet_arrival_time;
     uint8_t _data_index;
     uint32_t _last_update_ms = 0;
+    bool _thread_started = false;
+
+    void update_thread(void);
+    bool read_serial(void);
 
     /**
      * @brief Compute the CRC8 checksum of a buffer

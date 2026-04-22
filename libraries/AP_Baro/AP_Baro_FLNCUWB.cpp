@@ -33,7 +33,7 @@ AP_Baro_FLNCUWB::AP_Baro_FLNCUWB(AP_Baro& baro)
       _gnd_correction(0.0f)
 {
     _instance = _frontend.register_sensor();
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Initialized AP_Baro_FLNCUWB instance %u", _instance);
+    GCS_SEND_INFO("Initialized AP_Baro_FLNCUWB instance %u", _instance);
 }
 
 void AP_Baro_FLNCUWB::handle_uwb_flnc(const AP_UWB_FLNC::pressure_data_message_t &pkt)
@@ -65,19 +65,14 @@ void AP_Baro_FLNCUWB::update(void)
         static uint32_t last_call_ms = 0;
         if (last_call_ms == 0 || AP_HAL::millis() - last_call_ms > 1000) {
             last_call_ms = AP_HAL::millis();
-            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "AP_Baro_FLNCUWB waiting for pressure data");
+            GCS_SEND_WARNING("AP_Baro_FLNCUWB waiting for pressure data");
         }
         // Call UWB update (otherwise baro calibration will never pass).
         auto uwb = AP_UWB::get_singleton();
         if (uwb == nullptr || uwb->num_instances() == 0) {
-            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "AP_Baro_FLNCUWB doesn't have an UWB instance");
-            return;
+            GCS_SEND_CRITICAL("AP_Baro_FLNCUWB doesn't have an UWB instance");
         }
-        uwb->update();
-        if (_count == 0){
-            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "AP_Baro_FLNCUWB did not receive any pressure data, uwb health: %d", uwb->healthy());
-            return;
-        }
+        return;
     }
 
     WITH_SEMAPHORE(_sem);

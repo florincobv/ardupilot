@@ -34,8 +34,12 @@ void AP_UWB_FLNC::init_serial(uint8_t serial_instance)
     if (uart == nullptr) {
         return;
     }
+    _baudrate = serialmanager.find_baudrate(AP_SerialManager::SerialProtocol_FLNC_UWB, serial_instance);
+    if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_UWB_FLNC::update_thread, void), "UWB", 2048, AP_HAL::Scheduler::PRIORITY_SPI, 0)) {
+        AP_HAL::panic("AP_UWB_FLNC: failed to start update thread");
+    }
+    _thread_started = true;
     GCS_SEND_INFO("UWB SERIAL INITIALIZED SUCCESSFULLY");
-    uart->begin(serialmanager.find_baudrate(AP_SerialManager::SerialProtocol_FLNC_UWB, serial_instance));
 }
 
 // returns true if a UWB has been recently updated
@@ -44,19 +48,25 @@ bool AP_UWB_FLNC::healthy() const
     return ((AP_HAL::millis() - _last_update_ms) < AP_UWB_TIMEOUT_MS);
 }
 
-// update the state of the sensor
-void AP_UWB_FLNC::update(void)
+// Thread that continuously reads from the serial port
+void AP_UWB_FLNC::update_thread(void)
 {
-    if (!healthy()) {
-        GCS_SEND_WARNING_THROTTLE(1000, "UWB FLNC unhealthy");
-    }
-    if (uart == nullptr) {
-        GCS_SEND_CRITICAL("UWB FLNC uart nullptr");
-        return;
-    }
+    uart->begin(_baudrate);
 
-    // read any available characters
-    int16_t nbytes = uart->available();
+    while (true) {
+        if (!read_serial()) {
+            hal.scheduler->delay_microseconds(100);
+        }
+    }
+}
+
+// Read and parse any available bytes from the serial port. Returns true if any bytes were read.
+bool AP_UWB_FLNC::read_serial(void)
+{
+    uint32_t nbytes = uart->available();
+    if (nbytes == 0) {
+        return false;
+    }
     while (nbytes-- > 0) {
         uint8_t byte;
         if (!uart->read(byte)) {
@@ -104,6 +114,15 @@ void AP_UWB_FLNC::update(void)
             _packet_state = PacketState::HEADER;
             break;
         }
+    }
+    return true;
+}
+
+// update() is called from the main loop but serial reading is handled by the thread
+void AP_UWB_FLNC::update(void)
+{
+    if (!healthy()) {
+        GCS_SEND_WARNING_THROTTLE(1000, "UWB FLNC unhealthy");
     }
 }
 
