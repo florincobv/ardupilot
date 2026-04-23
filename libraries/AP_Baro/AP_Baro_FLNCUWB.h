@@ -81,8 +81,6 @@ private:
     float _gnd_correction;
 
     KalmanFilter1D _ground_pressure_kf;
-    bool _ground_pressure_updated = false;
-    uint32_t _last_correction_update_ms = 0;
 };
 
 #endif // AP_BARO_FLNCUWB_ENABLED

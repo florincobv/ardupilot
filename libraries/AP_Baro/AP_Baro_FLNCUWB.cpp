@@ -26,7 +26,7 @@ extern const AP_HAL::HAL& hal;
 
 AP_Baro_FLNCUWB::AP_Baro_FLNCUWB(AP_Baro& baro)
     : AP_Baro_Backend(baro),
-      _ground_pressure_kf(AP_BARO_FLNCUWB_NOISE, 101300.0f, 100000.0f),
+      _ground_pressure_kf(AP_BARO_FLNCUWB_NOISE, SSL_AIR_PRESSURE, 100000.0f),
       _count(0),
       _pressure_sum(0.0f),
       _temperature_sum(0.0f),
@@ -55,7 +55,6 @@ void AP_Baro_FLNCUWB::handle_uwb_flnc(const AP_UWB_FLNC::ground_pressure_data_me
 {
     float variance = pkt.ground_pressure_var > 0 ? pkt.ground_pressure_var : AP_BARO_FLNCUWB_DEFAULT_VARIANCE;
     _ground_pressure_kf.update(pkt.ground_pressure, variance);
-    _ground_pressure_updated = true;
 }
 
 // transfer data to the frontend
@@ -77,15 +76,9 @@ void AP_Baro_FLNCUWB::update(void)
 
     WITH_SEMAPHORE(_sem);
 
-    uint32_t now = AP_HAL::millis();
-    if (_ground_pressure_updated && now - _last_correction_update_ms > AP_BARO_FLNCUWB_DRIFT_INTERVAL_MS) {
-        float start_pressure = _frontend.sensors[_instance].ground_pressure;
-        float real_pressure = _ground_pressure_kf.get_state();
-        _gnd_correction = real_pressure - start_pressure;
-        _frontend.sensors[_instance].p_correction = _gnd_correction;
-        _last_correction_update_ms = now;
-    }
-    _copy_to_frontend(_instance, _pressure_sum/_count, _temperature_sum/_count);
+    float pressure_diff = _pressure_sum/_count - _ground_pressure_kf.get_state();
+    float pressure = SSL_AIR_PRESSURE + pressure_diff;
+    _copy_to_frontend(_instance, pressure, _temperature_sum/_count);
     _pressure_sum = 0;
     _temperature_sum = 0;
     _count = 0;
