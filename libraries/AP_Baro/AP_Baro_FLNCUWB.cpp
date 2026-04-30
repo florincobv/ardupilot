@@ -61,6 +61,11 @@ void AP_Baro_FLNCUWB::handle_uwb_flnc(const AP_UWB_FLNC::ground_pressure_data_me
 void AP_Baro_FLNCUWB::update(void)
 {
     if (_count == 0) {
+        static uint32_t last_call_ms = 0;
+        if (last_call_ms == 0 || AP_HAL::millis() - last_call_ms > 1000) {
+            last_call_ms = AP_HAL::millis();
+            GCS_SEND_WARNING("AP_Baro_FLNCUWB waiting for pressure data");
+        }
         // Call UWB update (otherwise baro calibration will never pass).
         auto uwb = AP_UWB::get_singleton();
         if (uwb == nullptr || uwb->num_instances() == 0) {
