@@ -209,7 +209,7 @@ int32_t ModeSmartRTL::wp_bearing() const
 bool ModeSmartRTL::use_pilot_yaw() const
 {
     const bool land_repositioning = g.land_repositioning && (smart_rtl_state == SubMode::DESCEND);
-    const bool final_landing = smart_rtl_state == SubMode::LAND;
+    const bool final_landing = (smart_rtl_state == SubMode::LAND) && copter.mode_land.use_pilot_yaw();
     return g2.smart_rtl.use_pilot_yaw() || land_repositioning || final_landing;
 }
 

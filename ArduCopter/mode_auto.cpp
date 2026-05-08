@@ -643,8 +643,8 @@ bool ModeAuto::use_pilot_yaw(void) const
 {
     const bool allow_yaw_option = !option_is_enabled(Option::IgnorePilotYaw);
     const bool rtl_allow_yaw = (_mode == SubMode::RTL) && copter.mode_rtl.use_pilot_yaw();
-    const bool landing = _mode == SubMode::LAND;
-    return allow_yaw_option || rtl_allow_yaw || landing;
+    const bool landing_allow_yaw = (_mode == SubMode::LAND) && copter.mode_land.use_pilot_yaw();
+    return allow_yaw_option || rtl_allow_yaw || landing_allow_yaw;
 }
 
 bool ModeAuto::set_speed_xy(float speed_xy_cms)
