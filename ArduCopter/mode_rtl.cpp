@@ -545,7 +545,7 @@ bool ModeRTL::use_pilot_yaw(void) const
 {
     const bool allow_yaw_option = (copter.g2.rtl_options.get() & uint32_t(Options::IgnorePilotYaw)) == 0;
     const bool land_repositioning = g.land_repositioning && (_state == SubMode::FINAL_DESCENT);
-    const bool final_landing = _state == SubMode::LAND;
+    const bool final_landing = (_state == SubMode::LAND) && copter.mode_land.use_pilot_yaw();
     return allow_yaw_option || land_repositioning || final_landing;
 }
 

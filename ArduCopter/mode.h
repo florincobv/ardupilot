@@ -1243,6 +1243,8 @@ public:
 
     bool is_landing() const override { return true; };
 
+    bool use_pilot_yaw() const override;
+
 #if AP_COPTER_ADVANCED_FAILSAFE_ENABLED
     // Return the type of this mode for use by advanced failsafe
     AP_AdvancedFailsafe_Copter::control_mode afs_mode() const override { return AP_AdvancedFailsafe_Copter::control_mode::AFS_AUTO; }
