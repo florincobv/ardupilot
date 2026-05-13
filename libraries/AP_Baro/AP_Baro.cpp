@@ -314,7 +314,7 @@ void AP_Baro::calibrate(bool save)
         uint32_t tstart = AP_HAL::millis();
         do {
             update();
-            if (AP_HAL::millis() - tstart > 500) {
+            if (AP_HAL::millis() - tstart > 120000) {  // Long timeout as UWB pull-up is triggered by RPI
                 AP_BoardConfig::config_error("Baro: unable to calibrate");
             }
             hal.scheduler->delay(10);
