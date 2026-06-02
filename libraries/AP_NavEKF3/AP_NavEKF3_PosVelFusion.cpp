@@ -1282,8 +1282,11 @@ void NavEKF3_core::selectHeightForFusion()
 
     // if there is new baro data to fuse, calculate filtered baro data required by other processes
     if (baroDataToFuse) {
-        // calculate offset to baro data that enables us to switch to Baro height use during operation
-        if (activeHgtSource != AP_NavEKF_Source::SourceZ::BARO) {
+        if (frontend->sources.getPosZSource() == AP_NavEKF_Source::SourceZ::BARO) {
+            // Assume GPS and baro have the same offset. Part of circumventing the barocalibration in flnc uwb.
+            baroHgtOffset = (ftype)ekfGpsRefHgt;
+        } else if (activeHgtSource != AP_NavEKF_Source::SourceZ::BARO) {
+            // calculate offset to baro data that enables us to switch to Baro height use during operation
             calcFiltBaroOffset();
         }
         // filtered baro data used to provide a reference for takeoff
