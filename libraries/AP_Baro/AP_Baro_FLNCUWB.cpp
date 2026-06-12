@@ -80,7 +80,7 @@ void AP_Baro_FLNCUWB::update(void)
     float pressure = SSL_AIR_PRESSURE + pressure_diff;
     // Force ground pressure from calibration to be default sealevel pressure.
     // Requires field elevation to remain 0 (i.e. should be disabled).
-    if (_frontend.sensors[_instance].ground_pressure.get() != SSL_AIR_PRESSURE)
+    if (!is_equal(_frontend.sensors[_instance].ground_pressure.get(), SSL_AIR_PRESSURE))
         _frontend.sensors[_instance].ground_pressure.set(SSL_AIR_PRESSURE);
     _copy_to_frontend(_instance, pressure, _temperature_sum/_count);
     _pressure_sum = 0;
