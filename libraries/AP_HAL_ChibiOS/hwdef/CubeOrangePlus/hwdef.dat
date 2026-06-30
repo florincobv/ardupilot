@@ -102,5 +102,11 @@ define HAL_INS_HIGHRES_SAMPLE 6
 
 define AP_NETWORKING_BACKEND_PPP 1
 
+undef BARO
+# also compile out MS56XX so the FMUv3/PIXHAWK2 board-detect fallback in
+# AP_Baro::init() can't re-probe the internal MS5611 baros; only the external
+# axislink (FLNCUWB) baro remains
+define AP_BARO_MS56XX_ENABLED 0
+
 define AP_UWB_ENABLED 1
 define AP_FIELD_ELEVATION_ENABLED 0
